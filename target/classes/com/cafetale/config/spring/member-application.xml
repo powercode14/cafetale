@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-3.2.xsd">
+
+	<bean id="msi" class="com.cafetale.member.service.MemberServiceImpl">
+		<property name="sqlSession" ref="ss"/>
+		<property name="uploadDirectory" value="C:/javadata/workspace_sts/.metadata/.plugins/org.eclipse.wst.server.core/tmp0/wtpwebapps/cafetale/image/member/"/>
+	</bean>
+</beans>

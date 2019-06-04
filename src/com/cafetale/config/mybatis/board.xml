@@ -1,0 +1,226 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper
+PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+"http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.cafetale.board.dao.BoardDao">
+    <select id="initBoard" parameterType="java.util.Map" resultType="com.cafetale.board.model.BoardDto">
+        SELECT idx, title, content, writer_id, write_date, good, bad, hit_count, cafe_title, cafe_id, reply_cnt
+        FROM (
+            SELECT rownum r, idx, title, content, writer_id,
+            CASE WHEN (sysdate - write_date) * 24 * 60 <![CDATA[<=]]> 1 THEN '방금 전'
+            WHEN (sysdate - write_date) * 24 <![CDATA[<]]> 1
+            THEN TRUNC((sysdate - write_date) * 24 * 60, 0) || '분 전'
+            WHEN (sysdate - write_date) <![CDATA[<]]> 1
+            THEN TRUNC((sysdate - write_date) * 24, 0) || '시간 전'
+            WHEN (sysdate - write_date) <![CDATA[<=]]> 31
+            THEN TRUNC((sysdate - write_date), 0) || '일 전'
+            ELSE TO_CHAR(write_date, 'YY.MM.DD')
+            END write_date, good, bad, hit_count, cafe_title, d.cafe_id, reply_cnt
+            FROM (
+                SELECT idx, title, content, writer_id, write_date,
+                (SELECT count(*) FROM board_good where board_idx = b.idx) good,
+                (SELECT count(*) FROM board_bad where board_idx = b.idx) bad,
+                hit_count, cafe_title, b.cafe_id,
+                (SELECT count(*) FROM board WHERE parent_idx = b.idx) reply_cnt
+                FROM board b, cafe c
+                <if test="goodOption == 'on'">
+                    , board_good g
+                </if>
+                <if test="friendOption == 'on'">
+                    , friend f1, friend f2
+                </if>
+                WHERE b.cafe_id = c.cafe_id
+                <if test="rcCafeOption != ''">
+                    AND c.cafe_id = #{rcCafeOption}
+                </if>
+                <if test="goodOption == 'on'">
+                    AND b.idx = g.board_idx
+                    AND g.member_id = #{memberId}
+                </if>
+                <if test="friendOption == 'on'">
+                    AND b.writer_id = f1.friend_id
+                    AND f1.member_id = #{memberId}
+                    AND f2.friend_id = #{memberId}
+                    AND f1.friend_id = f2.member_id
+                </if>
+                <if test="searchTitle != null">
+                    AND b.title like '%'||#{searchTitle}||'%'
+                </if>
+                <if test="searchContent != null">
+                    AND b.content like '%'||#{searchContent}||'%'
+                </if>
+                <if test="searchTitleContent != null">
+                    AND b.title || b.content like '%'||#{searchTitleContent}||'%'
+                </if>
+                <if test="searchMember != null">
+                    AND b.writer_id like #{searchMember}
+                </if>
+                ORDER BY b.write_date DESC) d
+            )
+        WHERE r between 1 and #{boardPage}*8
+    </select>
+    
+    <select id="getMemberCafeInfo" parameterType="java.util.Map" resultType="com.cafetale.cafe.model.CafeDetailDto">
+        SELECT c.cafe_id, cafe_title
+        FROM cafe c, good g
+        WHERE c.cafe_id = g.cafe_id
+        AND member_id = #{memberId}
+    </select>
+    
+    <insert id="insertFile" parameterType="com.cafetale.board.model.ImageFileDto">
+        INSERT INTO board_file(ORIGINAL_FILE_NAME, STORED_FILE_NAME, FILE_SIZE)
+        VALUES (#{original_file_name}, #{stored_file_name}, #{file_size})
+    </insert>
+    
+    <delete id="deleteFile" parameterType="String">
+        DELETE FROM board_file
+        WHERE stored_file_name = #{deleteFileName}
+    </delete>
+    
+    <insert id="registerArticle" parameterType="com.cafetale.board.model.BoardDto" useGeneratedKeys="true" keyProperty="idx">
+        <selectKey keyProperty="idx" resultType="String" order="BEFORE">
+            select seq_board_idx.nextval FROM DUAL
+        </selectKey>
+        INSERT INTO board(idx, title, content, writer_id, cafe_id)
+        VALUES(#{idx}, #{title}, #{content}, #{writer_id}, #{cafe_id})
+    </insert>
+    
+    <select id="boardCount" resultType="String">
+        SELECT count(*)
+        FROM board
+        WHERE parent_idx is NULL
+    </select>
+    
+    <update id="modifyArticle" parameterType="com.cafetale.board.model.BoardDto">
+        UPDATE board
+        SET title = #{title}, content = #{content}, cafe_id = #{cafe_id}
+        WHERE idx = #{idx}
+    </update>
+    
+    <update id="saveFile" parameterType="com.cafetale.board.model.ImageFileDto">
+        UPDATE board_file
+        SET board_idx = #{board_idx}, upload_member_id = #{upload_member_id}
+        WHERE stored_file_name = #{stored_file_name}
+    </update>
+    
+    <insert id="insertReply" parameterType="com.cafetale.board.model.BoardDto" useGeneratedKeys="true" keyProperty="idx">
+        <selectKey keyProperty="idx" resultType="String" order="BEFORE">
+            select seq_board_idx.nextval FROM DUAL
+        </selectKey>
+        INSERT INTO board(idx, parent_idx, content, writer_id)
+        VALUES(#{idx}, #{parent_idx}, #{content}, #{writer_id})
+    </insert>
+    
+    <select id="initReply" parameterType="java.util.Map" resultType="com.cafetale.board.model.BoardDto">
+        SELECT idx, parent_idx, writer_id, content, write_date, good, bad
+        FROM (
+                SELECT rownum r, idx, parent_idx, writer_id, content,
+                CASE WHEN (sysdate - write_date) * 24 * 60 <![CDATA[<=]]> 1 THEN '방금 전'
+                WHEN (sysdate - write_date) * 24 <![CDATA[<]]> 1
+                THEN TRUNC((sysdate - write_date) * 24 * 60, 0) || '분 전'
+                WHEN (sysdate - write_date) <![CDATA[<]]> 1
+                THEN TRUNC((sysdate - write_date) * 24, 0) || '시간 전'
+                WHEN (sysdate - write_date) <![CDATA[<=]]> 31
+                THEN TRUNC((sysdate - write_date), 0) || '일 전'
+                ELSE TO_CHAR(write_date, 'YY.MM.DD')
+                END write_date, good, bad
+                FROM (
+                    SELECT idx, parent_idx, writer_id, content, write_date,
+                    (SELECT count(*) FROM board_good where board_idx = idx) good,
+                    (SELECT count(*) FROM board_bad where board_idx = idx) bad
+                    FROM board
+                    WHERE parent_idx = #{parent_idx}
+                    ORDER BY write_date DESC
+                    )
+             )
+        WHERE r BETWEEN 1 AND #{page} * 4
+    </select>
+    
+    <delete id="removeBoard" parameterType="java.util.Map">
+        DELETE FROM board
+        WHERE idx = #{idx}
+        OR parent_idx = #{idx}
+    </delete>
+    
+    <delete id="removeBoardFile" parameterType="java.util.Map">
+        DELETE FROM board_file
+        WHERE board_idx = #{idx}
+    </delete>
+    
+    <update id="modifyReply" parameterType="java.util.Map">
+        UPDATE board
+        SET content = #{content}
+        WHERE idx = #{idx}
+    </update>
+    
+    <delete id="deleteReply" parameterType="java.util.Map">
+        delete FROM board
+        WHERE idx = #{idx}
+    </delete>
+    
+    <select id="articleGoodCheck" parameterType="java.util.Map" resultType="String">
+        SELECT COUNT(*)
+        FROM board_good
+        WHERE board_idx = #{idx}
+        AND member_id = #{memberId}
+    </select>
+    
+    <insert id="insertArticleGood" parameterType="java.util.Map">
+        INSERT INTO board_good(board_idx, member_id)
+        VALUES(#{idx}, #{memberId})
+    </insert>
+    
+    <delete id="deleteArticleGood" parameterType="java.util.Map">
+        DELETE FROM board_good
+        WHERE board_idx = #{idx}
+        AND member_id = #{memberId}
+    </delete>
+    
+    <select id="articleBadCheck" parameterType="java.util.Map" resultType="String">
+        SELECT COUNT(*)
+        FROM board_bad
+        WHERE board_idx = #{idx}
+        AND member_id = #{memberId}
+    </select>
+    
+    <insert id="insertArticleBad" parameterType="java.util.Map">
+        INSERT INTO board_bad(board_idx, member_id)
+        VALUES(#{idx}, #{memberId})
+    </insert>
+    
+    <delete id="deleteArticleBad" parameterType="java.util.Map">
+        DELETE FROM board_bad
+        WHERE board_idx = #{idx}
+        AND member_id = #{memberId}
+    </delete>
+    
+    <select id="fileCheck" parameterType="String" resultType="String">
+        SELECT count(*)
+        FROM board_file
+        WHERE stored_file_name = #{sfd}
+    </select>
+    
+    <select id="popularArticle" resultType="com.cafetale.board.model.BoardDto">
+        SELECT idx, title, cafe_title
+        FROM
+        (
+            SELECT rownum r, idx, title, cafe_title
+            FROM
+            (
+                SELECT idx, title, cafe_title
+                FROM board b, cafe c
+                WHERE b.cafe_id = c.cafe_id(+)
+                AND b.parent_idx IS NULL
+                ORDER BY b.write_date DESC
+            )
+        )
+        WHERE r between 1 AND 5
+    </select>
+    
+    <update id="hitBoard" parameterType="String">
+        UPDATE board
+        SET hit_count = hit_count + 1
+        WHERE idx = #{boardIdx}
+    </update>
+</mapper>

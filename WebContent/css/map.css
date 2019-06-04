@@ -1,0 +1,63 @@
+#map_area {
+	position:relative;
+	margin-top:56px;
+	width: 100%;
+    min-width: 960px;
+    height: 368px;
+}
+
+#map_area{position:relative;z-index:0;height:368px;}
+.ui-resizable-handle.ui-resizable-s::before,.ui-resizable-handle.ui-resizable-s::after{content: "";width: 0;height: 0;position: absolute;top: -26px;left: 50%;margin-left:-28px;border-style: solid;border-width: 28px 28px 0px 28px;border-color: transparent transparent transparent transparent;}
+.ui-resizable-handle.ui-resizable-s::before{background: url(https://dcicons.s3.amazonaws.com/dicons/img/list/map/mapcontroller.png) center no-repeat;background-size:56px 28px;background-position:-28px -28px;}
+
+/* map bubble */
+
+table#mapb_tab {
+	
+}
+
+td#mapb_empty_cell1 {
+    height: 14px;
+}
+
+
+td#mapb_title_cell {
+    height: 20px;
+    width: 120px;
+    color: rgb(0, 205, 205);
+    font-size: 20px;
+}
+
+td#mapb_img_cell {
+    height: 70px;
+    width: 84px;
+    padding-left: 14px;
+    padding-top: 14px;
+    overflow: hidden;
+}
+
+img#mapb_img_itself {
+    height: 56px;
+    width: 56px;
+}
+
+td#mapb_empty_cell2 {
+    width: 152px;
+}
+
+td#mapb_addr_cell {
+    height: 32px;
+    width: 120px;
+    font-size: 14px;
+}
+
+td#mapb_empty_cell3 {
+    height: 32px;
+    width: 32px;
+}
+
+td#mapb_empty_cell4 {
+    height: 14px;
+    width: 250px;
+}
+

@@ -1,0 +1,148 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper
+PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+"http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.cafetale.member.dao.MemberDao">
+    <insert id="register" parameterType="com.cafetale.member.model.MemberDetailDto">
+        insert all 
+            into member (member_id, member_pw, member_name, member_email, member_joindate) 
+            values(#{member_id}, #{member_pw}, #{member_name}, #{member_email}, sysdate)
+            into member_detail (member_id, member_phone, member_birth, member_gender, member_address1, member_address2, member_image)
+            values(#{member_id}, #{member_phone}, #{member_birth}, #{member_gender}, #{member_address1}, #{member_address2}, #{member_image})
+        select * from dual
+    </insert>
+    
+    <update id="updateImage" parameterType="java.util.Map">
+        UPDATE member_detail SET member_image = #{member_image}
+        WHERE member_id = #{member_id}
+    </update>
+    
+    <select id="idCheck" parameterType="String" resultType="String"> <!-- parameterType : 입력값의 데이터타입, resultType : 리턴값의 데이터타입 --> 
+        select count(member_id)
+        from member
+        where member_id = #{member_id}
+    </select>
+    
+    <select id="login" parameterType="java.util.Map" resultType="com.cafetale.member.model.MemberDetailDto"> 
+        SELECT  member_name,
+                member_email,
+                member_joindate,
+                d.*,
+                (SELECT cafe_title
+                FROM cafe c, member_detail d2
+                WHERE c.cafe_id = d2.member_cafe_id
+                AND d2.member_id = #{login_id}) member_cafe_title
+        FROM member m, member_detail d
+        WHERE m.member_id = d.member_id
+        AND m.member_id = #{login_id}
+        AND member_pw = #{login_pw}
+    </select>
+    
+    <select id="modifyCheck" parameterType="java.util.Map" resultType="String">
+        SELECT count(*)
+        FROM member
+        WHERE member_id = #{loginId} AND member_pw = #{checkPw}
+    </select>
+    
+    <update id="modify" parameterType="com.cafetale.member.model.MemberDetailDto">
+        update member
+        set member_pw=#{member_pw}, member_name=#{member_name}, member_email=#{member_email}
+        where member_id = #{member_id}
+    </update>
+    
+    <update id="modifyDetail" parameterType="com.cafetale.member.model.MemberDetailDto">
+        update member_detail
+        set member_phone=#{member_phone}, member_birth=#{member_birth}, member_gender=#{member_gender},
+            member_address1=#{member_address1}, member_address2=#{member_address2}, member_image=#{member_image}
+        where member_id = #{member_id}
+    </update>
+    
+    <insert id="addFollow" parameterType="java.util.Map">
+        insert into friend
+        values(#{loginId}, #{followid}, sysdate)
+    </insert>
+    
+    <delete id="followCancel" parameterType="java.util.Map">
+        delete from friend
+        where member_id = #{loginId} and friend_id = #{cancelid}
+    </delete>
+    
+    <select id="following" parameterType="java.util.Map" resultType="com.cafetale.member.model.FollowDto">
+        SELECT m.member_id, member_name, TO_CHAR(f_date, 'YY.MM.DD HH24:MI') f_date
+        FROM
+        (
+            SELECT friend_id, f_date
+            FROM friend
+            WHERE member_id = #{memberId}
+        ) f, member m
+        WHERE f.friend_id = m.member_id
+    </select>
+    
+    <select id="follower" parameterType="java.util.Map" resultType="com.cafetale.member.model.FollowDto">
+        SELECT m.member_id, member_name, TO_CHAR(f_date, 'YY.MM.DD HH24:MI') f_date
+        FROM
+        (
+            SELECT member_id, f_date
+            FROM friend
+            WHERE friend_id = #{memberId}
+        ) f, member m
+        WHERE f.member_id = m.member_id
+    </select>
+    
+    <select id="memberSearch" parameterType="java.util.Map" resultType="com.cafetale.member.model.FollowDto"> 
+        SELECT member_id, member_name
+        FROM member
+        WHERE member_id != #{memberId}
+        and member_id like '%'||#{keyword}||'%'
+        or member_name like '%'||#{keyword}||'%'
+        ORDER BY member_joindate DESC
+    </select>
+    
+    <select id="getUserImage" parameterType="java.util.Map" resultType="String">
+        SELECT member_image
+        FROM member_detail
+        WHERE member_id = #{member_id}
+    </select>
+    
+    <select id="friend" parameterType="java.util.Map" resultType="com.cafetale.member.model.FollowDto">
+        SELECT m.member_id, member_name
+        FROM
+        (
+            SELECT friend_id
+            FROM friend
+            WHERE member_id = #{memberId}
+        ) f, member m
+        WHERE f.friend_id = m.member_id
+        INTERSECT
+        SELECT m.member_id, member_name
+        FROM
+        (
+            SELECT member_id
+            FROM friend
+            WHERE friend_id = #{memberId}
+        ) f, member m
+        WHERE f.member_id = m.member_id
+    </select>
+    <select id="memberGoodCafe" parameterType="java.util.Map" resultType="com.cafetale.cafe.model.CafeDetailDto">
+        SELECT g.cafe_id, cafe_title, cafe_newAddress, cafe_zipcode, cafe_phone, cafe_image, cafe_graderate, cafe_good
+        FROM good g, cafe c, cafe_grade cg
+        WHERE g.cafe_id = c.cafe_id
+        AND c.cafe_id = cg.cafe_id
+        AND member_id = #{memberId}
+        ORDER BY good_date DESC
+    </select>
+
+    <select id="getMemberInfo" parameterType="java.util.Map" resultType="com.cafetale.member.model.MemberDetailDto">
+        SELECT m.member_id, m.member_name, m.member_email, d.member_cafe_id, (SELECT cafe_title from cafe c WHERE d.member_cafe_id = c.cafe_id) member_cafe_title
+        FROM member m, member_detail d
+        WHERE m.member_id = d.member_id
+        AND m.member_id = #{memberId}
+    </select>
+    
+    <update id="registerRpCafe" parameterType="java.util.Map">
+        UPDATE member_detail
+        SET member_cafe_id = #{cafeId}
+        WHERE member_id = #{memberId}
+    </update>
+</mapper>

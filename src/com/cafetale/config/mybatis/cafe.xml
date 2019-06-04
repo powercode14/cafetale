@@ -1,0 +1,132 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper
+PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+"http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.cafetale.cafe.dao.CafeDao">
+    <select id="cafeCheck" parameterType="String" resultType="com.cafetale.cafe.model.CafeDetailDto">
+        SELECT c.cafe_id, cafe_title, cafe_newAddress, cafe_zipcode, cafe_phone, cafe_image, cafe_graderate, cafe_good
+        FROM cafe c, cafe_grade g 
+        WHERE c.cafe_id = g.cafe_id
+        AND c.cafe_id = #{cafeId}
+    </select>
+    
+    <insert id="insertCafe" parameterType="com.cafetale.cafe.model.CafeDetailDto">
+        insert all
+            into cafe(cafe_id, cafe_title, cafe_newAddress, cafe_zipcode, cafe_phone, cafe_image)
+            values(#{cafe_id}, #{cafe_title}, #{cafe_newAddress}, #{cafe_zipcode}, #{cafe_phone}, #{cafe_image})
+            into cafe_grade(cafe_id)
+            values(#{cafe_id})
+        select * from dual
+    </insert>
+    
+    <select id="goodCheck" parameterType="java.util.Map" resultType="String">
+        select count(*)
+        from member m, cafe c, good g
+        where c.cafe_id = g.cafe_id
+        and g.cafe_id = #{cafeId}
+        and m.member_id = g.member_id
+        and g.member_id = #{loginId}
+    </select>
+    
+    <update id="goodPlus" parameterType="java.util.Map">
+        update cafe_grade
+        set cafe_good = cafe_good + 1
+        where cafe_id = #{cafeId}
+    </update>
+    
+    <update id="goodMinus" parameterType="java.util.Map">
+        update cafe_grade
+        set cafe_good = cafe_good - 1
+        where cafe_id = #{cafeId}
+    </update>
+    
+    <insert id="insertGood" parameterType="java.util.Map">
+        insert into good(cafe_id, member_id, good_date)
+        values(#{cafeId}, #{loginId}, sysdate)
+    </insert>
+    
+    <delete id="deleteGood" parameterType="java.util.Map">
+        delete good
+        where cafe_id = #{cafeId}
+        and member_id = #{loginId}
+    </delete>
+    
+    <select id="cafeGradeCheck" parameterType="java.util.Map" resultType="String">
+        select cafe_graderate
+        from cafe_grade
+        where cafe_id = #{cafeId}
+    </select>
+    
+    <select id="myRatingCheck" parameterType="java.util.Map" resultType="String">
+        select grade_rate
+        from grade
+        where cafe_id = #{cafeId} and member_id = #{loginId}
+    </select>
+    
+    <delete id="deleteMyRating" parameterType="java.util.Map">
+        delete
+        from grade
+        where cafe_id = #{cafeId} and member_id = #{loginId}
+    </delete>
+    
+    <update id="updateCafeGrade" parameterType="java.util.Map">
+        update cafe_grade
+        set cafe_graderate = (select case when avg(grade_rate) is null then 0 else avg(grade_rate) end from grade where cafe_id = #{cafeId})
+        where cafe_id = #{cafeId}
+    </update>
+    
+    <insert id="rating" parameterType="java.util.Map">
+        insert into grade(grade_rate, cafe_id, member_id, grade_date)
+        values(#{raty}, #{cafeId}, #{loginId}, sysdate)
+    </insert>
+    
+    <select id="getCafeList" parameterType="java.util.Map" resultType="com.cafetale.cafe.model.CafeDetailDto">
+        SELECT c.cafe_id, cafe_title, cafe_newAddress, cafe_zipcode, cafe_phone, cafe_image, cafe_graderate, cafe_good
+        FROM cafe c, good g, cafe_grade cg
+        WHERE c.cafe_id = g.cafe_id
+        AND c.cafe_id = cg.cafe_id
+        AND g.member_id = #{memberId}
+        ORDER BY good_date desc
+    </select>
+    
+    <select id="getRcCafeList" parameterType="java.util.Map" resultType="com.cafetale.cafe.model.CafeDetailDto">
+        SELECT c.cafe_id, cafe_title, cafe_newAddress, cafe_zipcode, cafe_phone, cafe_image, cafe_graderate, cafe_good,
+            CASE WHEN (sysdate - rc_date) * 24 * 60 <![CDATA[<=]]> 1 THEN '방금 전'
+                WHEN (sysdate - rc_date) * 24 <![CDATA[<]]> 1
+                THEN TRUNC((sysdate - rc_date) * 24 * 60, 0) || '분 전'
+                WHEN (sysdate - rc_date) <![CDATA[<]]> 1
+                THEN TRUNC((sysdate - rc_date) * 24, 0) || '시간 전'
+                WHEN (sysdate - rc_date) <![CDATA[<=]]> 31
+                THEN TRUNC((sysdate - rc_date), 0) || '일 전'
+                ELSE TO_CHAR(rc_date, 'YY.MM.DD')
+                END rc_date, member_id, friend_id, message
+        FROM cafe c, cafe_recommend r, cafe_grade cg
+        WHERE c.cafe_id = r.cafe_id
+        AND c.cafe_id = cg.cafe_id
+        AND r.friend_id = #{loginId}
+        ORDER BY rc_date desc
+    </select>
+    
+    <update id="updateMemo" parameterType="java.util.Map">
+        UPDATE good
+        SET memo=#{memo}
+        WHERE member_id=#{loginId} AND cafe_id=#{cafeId}
+    </update>
+    
+    <insert id="cafeRecommend" parameterType="java.util.Map">
+        INSERT INTO cafe_recommend
+        values(#{loginId}, #{friendId}, #{cafeId}, sysdate, #{message})
+    </insert>
+    
+    <select id="getCafeImage" parameterType="java.util.Map" resultType="String">
+        SELECT cafe_image FROM cafe WHERE cafe_id=#{cafeId}
+    </select>
+
+    <delete id="removeRcCafe" parameterType="java.util.Map">
+        DELETE FROM cafe_recommend
+        WHERE cafe_id = #{cafeId}
+        AND friend_id = #{loginId}
+        AND member_id = #{friendId}
+    </delete>
+</mapper>

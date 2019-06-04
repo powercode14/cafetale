@@ -1,0 +1,53 @@
+sns mvc
+   - src
+     com.cafetail.action
+       - Action.java (I)
+     
+     com.cafetail.factory
+       - MemberActionFactory.java
+     
+     com.cafetail.member.action
+       - IdCheckAction.java
+       - ZipSearchAction.java
+       - RegisterAction.java
+       - LoginAction.java
+       - LogoutAction.java
+       
+     com.cafetail.member.controller
+       - MemberController.java(Servlet : /user)
+       
+     com.cafetail.member.model
+       - MemberDto.java
+       - MemberDetailDto.java
+       - ZipDto.java
+
+     com.cafetail.member.service
+       - MemberService.java (I)
+       - MemberServiceImpl.java
+     
+     com.cafetail.member.dao
+       - MemberDao.java (I)
+       - MemberDaoImpl.java
+       
+     com.cafetail.util
+       - Encoder.java
+       - PageMove.java
+       
+     com.cafetail.util.db
+       - DBConnection.java
+       - DBClose.java
+   
+   - webContent
+     doc : 참고용 문서
+     css : *.css
+     js  : *.js
+     img : images
+     join
+       - zipsearch.jsp   : 우편번호 검색
+       - member.jsp   : 회원가입
+       - member_ok.jsp   : 회원가입 성공
+     login
+       - login.jsp      : 로그인
+       - login_ok.jsp   : 로그인 성공
+       - login_fail.jsp: 로그인 실패
+     index.jsp : 메인페이지
